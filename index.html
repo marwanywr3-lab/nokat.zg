@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>بنك النكت البايخة</title>
+  <style>
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: #f8fafc; color: #1e293b; padding: 20px; margin: 0; }
+    .container { max-width: 550px; margin: 0 auto; background: #ffffff; padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    h1 { text-align: center; margin-top: 0; color: #0f172a; }
+    .form-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px; }
+    input, textarea { width: 100%; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 15px; outline: none; }
+    input:focus, textarea:focus { border-color: #3b82f6; }
+    button { background-color: #3b82f6; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    button:hover { background-color: #2563eb; }
+    .jokes-list { display: flex; flex-direction: column; gap: 12px; }
+    .joke-card { background: #f1f5f9; padding: 15px; border-radius: 10px; border-right: 4px solid #3b82f6; }
+    .joke-author { font-weight: bold; color: #2563eb; font-size: 14px; margin-bottom: 5px; }
+    .joke-text { margin: 0; font-size: 16px; line-height: 1.5; white-space: pre-wrap; }
+    .empty-state { text-align: center; color: #94a3b8; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <!-- واجهة الموقع (HTML) -->
+  <div class="container">
+    <h1>😂 نكت بايخة مشتركة</h1>
+
+    <div class="form-group">
+      <input type="text" id="authorInput" placeholder="اسمك أو لقبك..." />
+      <textarea id="jokeInput" rows="3" placeholder="اكتب النكتة البايخة هنا..."></textarea>
+      <button id="submitBtn">نشر النكتة</button>
+    </div>
+
+    <h3>أحدث النكت:</h3>
+    <div id="jokesContainer" class="jokes-list">
+      <div class="empty-state">جاري تحميل النكت...</div>
+    </div>
+  </div>
+
+  <!-- كود الفايربيس مدمج بالكامل هنا -->
+  <script type="module">
+    // استدعاء مكتبات فايربيس السحابية
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { 
+      getFirestore, 
+      collection, 
+      addDoc, 
+      onSnapshot, 
+      query, 
+      orderBy, 
+      serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // مفاتيح مشروعك اللي نسختها
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-1piaiwFLK4fPVhTRD9rlff_thugXRj0",
+      authDomain: "bad-jokes-aa240.firebaseapp.com",
+      projectId: "bad-jokes-aa240",
+      storageBucket: "bad-jokes-aa240.firebasestorage.app",
+      messagingSenderId: "302923744056",
+      appId: "1:302923744056:web:de859ceb9f0712f8bdb7cd",
+      measurementId: "G-36PP5HFV2P"
+    };
+
+    // تشغيل الاتصال
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const authorInput = document.getElementById("authorInput");
+    const jokeInput = document.getElementById("jokeInput");
+    const submitBtn = document.getElementById("submitBtn");
+    const jokesContainer = document.getElementById("jokesContainer");
+
+    // وظيفة إرسال النكتة لقاعدة البيانات
+    submitBtn.addEventListener("click", async () => {
+      const author = authorInput.value.trim() || "مجهول";
+      const joke = jokeInput.value.trim();
+
+      if (!joke) {
+        alert("اكتب النكتة أولاً!");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerText = "جاري النشر...";
+
+      try {
+        await addDoc(collection(db, "jokes"), {
+          author: author,
+          joke: joke,
+          createdAt: serverTimestamp()
+        });
+
+        jokeInput.value = "";
+      } catch (err) {
+        console.error("خطأ أثناء الحفظ:", err);
+        alert("حدث خطأ! تأكد من تفعيل وضع الاختبار (Test Mode) في Firestore.");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = "نشر النكتة";
+      }
+    });
+
+    // جلب النكت وعرضها لحظياً
+    const jokesQuery = query(collection(db, "jokes"), orderBy("createdAt", "desc"));
+
+    onSnapshot(jokesQuery, (snapshot) => {
+      jokesContainer.innerHTML = "";
+
+      if (snapshot.empty) {
+        jokesContainer.innerHTML = '<div class="empty-state">لا توجد نكت بعد، كن أول من ينشر!</div>';
+        return;
+      }
+
+      snapshot.forEach((doc) => {
+        const item = doc.data();
+        const card = document.createElement("div");
+        card.className = "joke-card";
+        card.innerHTML = `
+          <div class="joke-author">${item.author}</div>
+          <p class="joke-text">${item.joke}</p>
+        `;
+        jokesContainer.appendChild(card);
+      });
+    });
+  </script>
+</body>
+</html>
